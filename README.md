@@ -7,6 +7,6 @@ oh, dont forget to import via gradle
 
 ## SS
 
-<img src="https://raw.githubusercontent.com/renosyah/WebViewPopUpPlugin/1.png" />
+<img src="https://raw.githubusercontent.com/renosyah/WebViewPopUpPlugin/1.jpg" />
 
-<img src="https://raw.githubusercontent.com/renosyah/WebViewPopUpPlugin/2.png" />
+<img src="https://raw.githubusercontent.com/renosyah/WebViewPopUpPlugin/2.jpg" />
