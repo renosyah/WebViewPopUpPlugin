@@ -1,6 +1,7 @@
 package com.example.webviewpopupplugin;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -9,6 +10,8 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -44,39 +47,33 @@ public class WebViewPopUp extends GodotPlugin {
     @NonNull
     @Override
     public List<String> getPluginMethods() {
-        return Arrays.asList("OpenUrl", "ClosePopUp");
+        return Arrays.asList("open_url", "close_dialog");
     }
 
     @NonNull
     @Override
     public Set<SignalInfo> getPluginSignals() {
         Set<SignalInfo> signals = new HashSet<SignalInfo>();
-        signals.add(new SignalInfo("on_error", String.class));
+        signals.add(new SignalInfo("on_dialog_open"));
+        signals.add(new SignalInfo("on_dialog_dismiss"));
+        signals.add(new SignalInfo("on_error", int.class, String.class));
         return signals;
     }
 
-    public void OpenUrl(String url){
+    public void open_url(String url){
         if (webViewPopupDialog != null){
             return;
         }
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                webViewPopupDialog = new WebViewPopupDialog(activity, url, onWebViewPopupDialogDismiss);
+                webViewPopupDialog = new WebViewPopupDialog(activity, url, onDialogState);
                 webViewPopupDialog.show();
             }
         });
     }
 
-    private DialogInterface.OnDismissListener onWebViewPopupDialogDismiss = new DialogInterface.OnDismissListener() {
-        @Override
-        public void onDismiss(DialogInterface dialogInterface) {
-            webViewPopupDialog = null;
-        }
-    };
-
-
-    public void ClosePopUp(){
+    public void close_dialog(){
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -88,11 +85,39 @@ public class WebViewPopUp extends GodotPlugin {
         });
     }
 
+    private OnDialogState onDialogState = new OnDialogState() {
+        @Override
+        public void dialogOpen() {
+            emitSignal("on_dialog_open");
+        }
+
+        @Override
+        public void dialogDismiss() {
+            webViewPopupDialog = null;
+            emitSignal("on_dialog_dismiss");
+        }
+
+        @Override
+        public void webViewErrorDismiss(int errorCode, String description) {
+            emitSignal("on_error", errorCode, description);
+        }
+    };
+
     private static class WebViewPopupDialog {
         AlertDialog dialog;
+        Activity activity;
+        String url;
+        OnDialogState onDialogState;
+
+        public WebViewPopupDialog(Activity activity, String url, OnDialogState onDialogState) {
+            this.activity = activity;
+            this.url = url;
+            this.onDialogState = onDialogState;
+            this.initDialog();
+        }
 
         @SuppressLint("SetJavaScriptEnabled")
-        public WebViewPopupDialog(Activity activity, String url, DialogInterface.OnDismissListener onDismissListener) {
+        private void initDialog(){
            AlertDialog.Builder alertDialog = new AlertDialog.Builder(activity);
 
             LinearLayout wrapper = new LinearLayout(activity);
@@ -115,6 +140,19 @@ public class WebViewPopUp extends GodotPlugin {
                 public boolean shouldOverrideUrlLoading(WebView view, String url) {
                     view.loadUrl(url);
                     return true;
+                }
+
+                @SuppressWarnings("deprecation")
+                @Override
+                public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                    onDialogState.webViewErrorDismiss(errorCode, description);
+                }
+
+                @TargetApi(android.os.Build.VERSION_CODES.M)
+                @Override
+                public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError error) {
+                    // Redirect to deprecated method, so you can use it in all SDK versions
+                    onReceivedError(view, error.getErrorCode(),error.getDescription().toString(), req.getUrl().toString());
                 }
             });
 
@@ -148,17 +186,18 @@ public class WebViewPopUp extends GodotPlugin {
                 @Override
                 public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent event) {
                     if (keyCode == KeyEvent.KEYCODE_BACK) {
+                        onDialogState.dialogDismiss();
                         dialogInterface.dismiss();
                     }
                     return true;
                 }
             });
-            alertDialog.setOnDismissListener(onDismissListener);
             dialog = alertDialog.create();
         }
 
         void show(){
             dialog.show();
+            onDialogState.dialogOpen();
         }
 
         void close(){
@@ -167,4 +206,10 @@ public class WebViewPopUp extends GodotPlugin {
     }
 
     private static class  CustomChromeClient extends WebChromeClient {}
+
+    private interface OnDialogState {
+        void dialogOpen();
+        void dialogDismiss();
+        void webViewErrorDismiss(int errorCode, String description);
+    }
 }
