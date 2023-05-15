@@ -62,11 +62,19 @@ public class WebViewPopUp extends GodotPlugin {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                webViewPopupDialog = new WebViewPopupDialog(activity, url);
+                webViewPopupDialog = new WebViewPopupDialog(activity, url, onWebViewPopupDialogDismiss);
                 webViewPopupDialog.show();
             }
         });
     }
+
+    private DialogInterface.OnDismissListener onWebViewPopupDialogDismiss = new DialogInterface.OnDismissListener() {
+        @Override
+        public void onDismiss(DialogInterface dialogInterface) {
+            webViewPopupDialog = null;
+        }
+    };
+
 
     public void ClosePopUp(){
         runOnUiThread(new Runnable() {
@@ -84,7 +92,7 @@ public class WebViewPopUp extends GodotPlugin {
         AlertDialog dialog;
 
         @SuppressLint("SetJavaScriptEnabled")
-        public WebViewPopupDialog(Activity activity, String url) {
+        public WebViewPopupDialog(Activity activity, String url, DialogInterface.OnDismissListener onDismissListener) {
            AlertDialog.Builder alertDialog = new AlertDialog.Builder(activity);
 
             LinearLayout wrapper = new LinearLayout(activity);
@@ -145,7 +153,7 @@ public class WebViewPopUp extends GodotPlugin {
                     return true;
                 }
             });
-
+            alertDialog.setOnDismissListener(onDismissListener);
             dialog = alertDialog.create();
         }
 
