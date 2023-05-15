@@ -58,8 +58,11 @@ public class WebViewPopUp extends GodotPlugin {
     @NonNull
     @Override
     public Set<SignalInfo> getPluginSignals() {
+        // cannot emit any signal with param from here
+        // error SETGEV bullcrab
+        // so instead we store error message
+        // that later be check on dialog dismiss
         Set<SignalInfo> signals = new ArraySet<>();
-        signals.add(new SignalInfo("on_dialog_open"));
         signals.add(new SignalInfo("on_dialog_dismiss"));
         signals.add(new SignalInfo("on_error"));
         return signals;
@@ -101,11 +104,6 @@ public class WebViewPopUp extends GodotPlugin {
     }
 
     private OnDialogState onDialogState = new OnDialogState() {
-        @Override
-        public void dialogOpen() {
-            emitSignal("on_dialog_open");
-        }
-
         @Override
         public void dialogDismiss() {
             webViewPopupDialog = null;
@@ -169,10 +167,6 @@ public class WebViewPopUp extends GodotPlugin {
                 @SuppressWarnings("deprecation")
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                    // cannot emit any signal from here
-                    // error SETGEV bullcrab
-                    // so instead we store error message
-                    // that later be check on dialog dismiss
                     if (description != null){
                         errorMessages.add(description);
                     }
@@ -214,7 +208,6 @@ public class WebViewPopUp extends GodotPlugin {
                 @Override
                 public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent event) {
                     if (keyCode == KeyEvent.KEYCODE_BACK) {
-                        onDialogState.dialogDismiss();
                         dialogInterface.dismiss();
                     }
                     return true;
@@ -225,7 +218,10 @@ public class WebViewPopUp extends GodotPlugin {
                 public void onDismiss(DialogInterface dialogInterface) {
                     if (!errorMessages.isEmpty()){
                         onDialogState.webViewError();
+                        return;
                     }
+
+                    onDialogState.dialogDismiss();
                 }
             });
 
@@ -235,7 +231,6 @@ public class WebViewPopUp extends GodotPlugin {
 
         void show(){
             dialog.show();
-            onDialogState.dialogOpen();
         }
 
         void close(){
@@ -246,7 +241,6 @@ public class WebViewPopUp extends GodotPlugin {
     private static class  CustomChromeClient extends WebChromeClient {}
 
     private interface OnDialogState {
-        void dialogOpen();
         void dialogDismiss();
         void webViewError();
     }
