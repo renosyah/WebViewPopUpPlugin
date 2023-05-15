@@ -3,6 +3,9 @@ package com.example.webviewpopupplugin;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.DialogInterface;
+import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
@@ -77,15 +80,6 @@ public class WebViewPopUp extends GodotPlugin {
         });
     }
 
-    @Override
-    public boolean onMainBackPressed() {
-        if (webViewPopupDialog != null) {
-            ClosePopUp();
-            return false;
-        }
-        return super.onMainBackPressed();
-    }
-
     private static class WebViewPopupDialog {
         AlertDialog dialog;
 
@@ -142,6 +136,15 @@ public class WebViewPopUp extends GodotPlugin {
             webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
 
             alertDialog.setCancelable(false);
+            alertDialog.setOnKeyListener(new Dialog.OnKeyListener() {
+                @Override
+                public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent event) {
+                    if (keyCode == KeyEvent.KEYCODE_BACK) {
+                        dialogInterface.dismiss();
+                    }
+                    return true;
+                }
+            });
 
             dialog = alertDialog.create();
         }
