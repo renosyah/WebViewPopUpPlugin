@@ -6,6 +6,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.graphics.Bitmap;
 import android.util.ArraySet;
 import android.view.KeyEvent;
 import android.view.View;
@@ -76,8 +77,7 @@ public class WebViewPopUp extends GodotPlugin {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                webViewPopupDialog = new WebViewPopupDialog(activity, url, onDialogState);
-                webViewPopupDialog.errorMessages = errorMessages;
+                webViewPopupDialog = new WebViewPopupDialog(activity, url, onDialogState, errorMessages);
                 webViewPopupDialog.show();
             }
         });
@@ -122,11 +122,17 @@ public class WebViewPopUp extends GodotPlugin {
         OnDialogState onDialogState;
 
         ArrayList<String> errorMessages;
+        Boolean finish = false;
 
-        public WebViewPopupDialog(Activity activity, String url, OnDialogState onDialogState) {
+        private Boolean isLocalIp(String url){
+            return url.contains("127.0.0.1");
+        }
+
+        public WebViewPopupDialog(Activity activity, String url, OnDialogState onDialogState, ArrayList<String> errorMessages) {
             this.activity = activity;
             this.url = url;
             this.onDialogState = onDialogState;
+            this.errorMessages = errorMessages;
             this.initDialog();
         }
 
@@ -157,6 +163,12 @@ public class WebViewPopUp extends GodotPlugin {
                 @Override
                 public void onPageFinished(WebView view, String url) {
                     super.onPageFinished(view, url);
+
+                    // just ignore it
+                    if (isLocalIp(url)){
+                        return;
+                    }
+
                     if (!errorMessages.isEmpty()){
                         dialog.dismiss();
                     }
@@ -165,6 +177,11 @@ public class WebViewPopUp extends GodotPlugin {
                 @SuppressWarnings("deprecation")
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                    // just ignore it
+                    if (isLocalIp(url)){
+                        return;
+                    }
+
                     if (description != null){
                         errorMessages.add(description);
                     }
@@ -219,6 +236,10 @@ public class WebViewPopUp extends GodotPlugin {
                         return;
                     }
 
+                    if (finish){
+                        return;
+                    }
+
                     onDialogState.dialogDismiss();
                 }
             });
@@ -232,6 +253,7 @@ public class WebViewPopUp extends GodotPlugin {
         }
 
         void close(){
+            finish = true;
             dialog.dismiss();
         }
     }
