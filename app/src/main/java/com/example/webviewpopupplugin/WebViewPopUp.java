@@ -6,6 +6,8 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.util.ArraySet;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -22,6 +24,8 @@ import androidx.annotation.NonNull;
 import org.godotengine.godot.Godot;
 import org.godotengine.godot.plugin.GodotPlugin;
 import org.godotengine.godot.plugin.SignalInfo;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +35,7 @@ public class WebViewPopUp extends GodotPlugin {
 
     Activity activity;
     WebViewPopupDialog webViewPopupDialog;
+    ArrayList<String> errorMessages = new ArrayList<String>();
 
     public WebViewPopUp(Godot godot) {
         super(godot);
@@ -47,16 +52,16 @@ public class WebViewPopUp extends GodotPlugin {
     @NonNull
     @Override
     public List<String> getPluginMethods() {
-        return Arrays.asList("open_url", "close_dialog");
+        return Arrays.asList("open_url", "close_dialog", "get_error_messages");
     }
 
     @NonNull
     @Override
     public Set<SignalInfo> getPluginSignals() {
-        Set<SignalInfo> signals = new HashSet<SignalInfo>();
+        Set<SignalInfo> signals = new ArraySet<>();
         signals.add(new SignalInfo("on_dialog_open"));
         signals.add(new SignalInfo("on_dialog_dismiss"));
-        signals.add(new SignalInfo("on_error", String.class));
+        signals.add(new SignalInfo("on_error"));
         return signals;
     }
 
@@ -64,10 +69,14 @@ public class WebViewPopUp extends GodotPlugin {
         if (webViewPopupDialog != null){
             return;
         }
+
+        errorMessages.clear();
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 webViewPopupDialog = new WebViewPopupDialog(activity, url, onDialogState);
+                webViewPopupDialog.errorMessages = errorMessages;
                 webViewPopupDialog.show();
             }
         });
@@ -85,6 +94,12 @@ public class WebViewPopUp extends GodotPlugin {
         });
     }
 
+    public String[] get_error_messages(){
+        String[] stockArr = new String[errorMessages.size()];
+        stockArr = errorMessages.toArray(stockArr);
+        return stockArr;
+    }
+
     private OnDialogState onDialogState = new OnDialogState() {
         @Override
         public void dialogOpen() {
@@ -98,8 +113,9 @@ public class WebViewPopUp extends GodotPlugin {
         }
 
         @Override
-        public void webViewErrorDismiss(int errorCode, String description) {
-            emitSignal("on_error", description);
+        public void webViewError() {
+            webViewPopupDialog = null;
+            emitSignal("on_error");
         }
     };
 
@@ -108,6 +124,8 @@ public class WebViewPopUp extends GodotPlugin {
         Activity activity;
         String url;
         OnDialogState onDialogState;
+
+        ArrayList<String> errorMessages;
 
         public WebViewPopupDialog(Activity activity, String url, OnDialogState onDialogState) {
             this.activity = activity;
@@ -129,8 +147,6 @@ public class WebViewPopUp extends GodotPlugin {
             wrapper.addView(keyboardHack, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             alertDialog.setView(wrapper);
 
-            webView.loadUrl(url);
-
             keyboardHack.setVisibility(View.GONE);
             webView.setFocusable(true);
             webView.setFocusableInTouchMode(true);
@@ -142,17 +158,31 @@ public class WebViewPopUp extends GodotPlugin {
                     return true;
                 }
 
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    super.onPageFinished(view, url);
+                    if (!errorMessages.isEmpty()){
+                        dialog.dismiss();
+                    }
+                }
+
                 @SuppressWarnings("deprecation")
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                    onDialogState.webViewErrorDismiss(errorCode, description);
+                    // cannot emit any signal from here
+                    // error SETGEV bullcrab
+                    // so instead we store error message
+                    // that later be check on dialog dismiss
+                    if (description != null){
+                        errorMessages.add(description);
+                    }
                 }
 
                 @TargetApi(android.os.Build.VERSION_CODES.M)
                 @Override
                 public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError error) {
                     // Redirect to deprecated method, so you can use it in all SDK versions
-                    onReceivedError(view, error.getErrorCode(),error.getDescription().toString(), req.getUrl().toString());
+                    onReceivedError(view, error.getErrorCode(), error.getDescription().toString(), req.getUrl().toString());
                 }
             });
 
@@ -172,13 +202,11 @@ public class WebViewPopUp extends GodotPlugin {
             webSettings.setSupportMultipleWindows(true);
 
             // WebView Tweaks
-            webSettings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+            webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
             webSettings.setDomStorageEnabled(true);
-            webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NARROW_COLUMNS);
             webSettings.setUseWideViewPort(true);
             webSettings.setSaveFormData(true);
-            webSettings.setEnableSmoothTransition(true);
             webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
 
             alertDialog.setCancelable(false);
@@ -192,7 +220,17 @@ public class WebViewPopUp extends GodotPlugin {
                     return true;
                 }
             });
+            alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialogInterface) {
+                    if (!errorMessages.isEmpty()){
+                        onDialogState.webViewError();
+                    }
+                }
+            });
+
             dialog = alertDialog.create();
+            webView.loadUrl(url);
         }
 
         void show(){
@@ -210,6 +248,6 @@ public class WebViewPopUp extends GodotPlugin {
     private interface OnDialogState {
         void dialogOpen();
         void dialogDismiss();
-        void webViewErrorDismiss(int errorCode, String description);
+        void webViewError();
     }
 }
