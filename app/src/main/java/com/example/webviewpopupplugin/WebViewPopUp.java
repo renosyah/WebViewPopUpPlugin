@@ -3,11 +3,7 @@ package com.example.webviewpopupplugin;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.view.View;
-import android.view.WindowManager;
-import android.view.inputmethod.InputMethodManager;
 import android.webkit.CookieManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
@@ -33,16 +29,6 @@ public class WebViewPopUp extends GodotPlugin {
     public WebViewPopUp(Godot godot) {
         super(godot);
         activity = godot.getActivity();
-    }
-
-    public void showSoftKeyboard(View view) {
-        if (view.requestFocus()) {
-            InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-            boolean isShowing = imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
-            if (!isShowing){
-                activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-            }
-        }
     }
 
     @NonNull
