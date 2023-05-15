@@ -56,7 +56,7 @@ public class WebViewPopUp extends GodotPlugin {
         Set<SignalInfo> signals = new HashSet<SignalInfo>();
         signals.add(new SignalInfo("on_dialog_open"));
         signals.add(new SignalInfo("on_dialog_dismiss"));
-        signals.add(new SignalInfo("on_error", Integer.class, String.class));
+        signals.add(new SignalInfo("on_error", String.class));
         return signals;
     }
 
@@ -99,7 +99,7 @@ public class WebViewPopUp extends GodotPlugin {
 
         @Override
         public void webViewErrorDismiss(int errorCode, String description) {
-            emitSignal("on_error", errorCode, description);
+            emitSignal("on_error", description);
         }
     };
 
