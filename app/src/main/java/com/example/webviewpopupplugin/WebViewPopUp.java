@@ -8,6 +8,7 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.util.ArraySet;
 import android.view.KeyEvent;
 import android.view.View;
@@ -18,6 +19,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 
@@ -143,12 +145,24 @@ public class WebViewPopUp extends GodotPlugin {
             WebView webView = new WebView(activity);
             EditText keyboardHack = new EditText(activity);
 
+            View errorView = activity.getLayoutInflater().inflate(R.layout.error_layout, null);
+            Button back = errorView.findViewById(R.id.button_close);
+            back.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    dialog.dismiss();
+                }
+            });
+
             wrapper.setOrientation(LinearLayout.VERTICAL);
             wrapper.addView(webView, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT);
             wrapper.addView(keyboardHack, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            wrapper.addView(errorView);
             alertDialog.setView(wrapper);
 
             keyboardHack.setVisibility(View.GONE);
+            errorView.setVisibility(View.GONE);
+
             webView.setFocusable(true);
             webView.setFocusableInTouchMode(true);
 
@@ -159,13 +173,15 @@ public class WebViewPopUp extends GodotPlugin {
                     return true;
                 }
 
-
                 @SuppressWarnings("deprecation")
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                     if (description != null){
                         errorMessages.add("error code : " + errorCode + ", error message : " + description);
                     }
+
+                    webView.setVisibility(View.GONE);
+                    errorView.setVisibility(View.VISIBLE);
                 }
 
                 @TargetApi(android.os.Build.VERSION_CODES.M)
@@ -192,7 +208,6 @@ public class WebViewPopUp extends GodotPlugin {
             webSettings.setSupportMultipleWindows(true);
 
             // WebView Tweaks
-            webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
             webSettings.setDomStorageEnabled(true);
             webSettings.setUseWideViewPort(true);
