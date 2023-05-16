@@ -7,6 +7,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.util.ArraySet;
 import android.view.KeyEvent;
 import android.view.View;
@@ -124,8 +125,16 @@ public class WebViewPopUp extends GodotPlugin {
         ArrayList<String> errorMessages;
         Boolean finish = false;
 
-        private Boolean isLocalIp(String url){
-            return url.contains("127.0.0.1");
+        private boolean isLocalIp(String url){
+            boolean result = false;
+            try {
+                Uri uri = Uri.parse(url);
+                String domain = uri.getHost();
+                result = domain.contains("127.0.0.1");
+
+            } catch (Exception ignored){  }
+            return result;
+
         }
 
         public WebViewPopupDialog(Activity activity, String url, OnDialogState onDialogState, ArrayList<String> errorMessages) {
