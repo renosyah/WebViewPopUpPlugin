@@ -127,16 +127,16 @@ public class WebViewPopUp extends GodotPlugin {
         ArrayList<String> errorMessages;
         Boolean finish = false;
 
-        private boolean isLocalIp(String url){
+        private boolean isLocalIp(String checkUrl){
             try {
-                Uri uri = Uri.parse(url);
+                Uri uri = Uri.parse(checkUrl);
                 String domain = uri.getHost();
                 return domain.contains("127.0.0.1");
 
             } catch (Exception ignored){  }
 
             try {
-                InetAddress domain = InetAddress.getByName(new URL(url).getHost());
+                InetAddress domain = InetAddress.getByName(new URL(checkUrl).getHost());
                 return domain.isAnyLocalAddress();
 
             } catch (Exception ignored){  }
@@ -178,11 +178,11 @@ public class WebViewPopUp extends GodotPlugin {
                 }
 
                 @Override
-                public void onPageFinished(WebView view, String url) {
-                    super.onPageFinished(view, url);
+                public void onPageFinished(WebView view, String openedUrl) {
+                    super.onPageFinished(view, openedUrl);
 
                     // just ignore it
-                    if (isLocalIp(url)){
+                    if (isLocalIp(openedUrl)){
                         return;
                     }
 
@@ -195,7 +195,7 @@ public class WebViewPopUp extends GodotPlugin {
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                     // just ignore it
-                    if (isLocalIp(url)){
+                    if (isLocalIp(failingUrl)){
                         return;
                     }
 
