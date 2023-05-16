@@ -127,24 +127,6 @@ public class WebViewPopUp extends GodotPlugin {
         ArrayList<String> errorMessages;
         Boolean finish = false;
 
-        private boolean isLocalIp(String checkUrl){
-            try {
-                Uri uri = Uri.parse(checkUrl);
-                String domain = uri.getHost();
-                return domain.contains("127.0.0.1");
-
-            } catch (Exception ignored){  }
-
-            try {
-                InetAddress domain = InetAddress.getByName(new URL(checkUrl).getHost());
-                return domain.isAnyLocalAddress();
-
-            } catch (Exception ignored){  }
-
-            return false;
-
-        }
-
         public WebViewPopupDialog(Activity activity, String url, OnDialogState onDialogState, ArrayList<String> errorMessages) {
             this.activity = activity;
             this.url = url;
@@ -177,19 +159,12 @@ public class WebViewPopUp extends GodotPlugin {
                     return true;
                 }
 
-                @Override
-                public void onPageFinished(WebView view, String openedUrl) {
-                    super.onPageFinished(view, openedUrl);
-                    if (!errorMessages.isEmpty() && !isLocalIp(openedUrl)){
-                        dialog.dismiss();
-                    }
-                }
 
                 @SuppressWarnings("deprecation")
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                    if (description != null && !isLocalIp(failingUrl)){
-                        errorMessages.add(description);
+                    if (description != null){
+                        errorMessages.add("error code : " + errorCode + ", error message : " + description);
                     }
                 }
 
@@ -237,14 +212,14 @@ public class WebViewPopUp extends GodotPlugin {
             alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialogInterface) {
-                    // dismiss dialog and return errors
-                    if (!errorMessages.isEmpty()){
-                        onDialogState.webViewError();
+                    // dismiss dialog normal
+                    if (finish){
                         return;
                     }
 
-                    // dismiss dialog normal
-                    if (finish){
+                    // dismiss dialog and return errors
+                    if (!errorMessages.isEmpty()){
+                        onDialogState.webViewError();
                         return;
                     }
 
