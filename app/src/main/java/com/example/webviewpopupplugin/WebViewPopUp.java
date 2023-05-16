@@ -172,21 +172,15 @@ public class WebViewPopUp extends GodotPlugin {
 
             webView.setWebViewClient(new WebViewClient() {
                 @Override
-                public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                    view.loadUrl(url);
+                public boolean shouldOverrideUrlLoading(WebView view, String loadingUrl) {
+                    view.loadUrl(loadingUrl);
                     return true;
                 }
 
                 @Override
                 public void onPageFinished(WebView view, String openedUrl) {
                     super.onPageFinished(view, openedUrl);
-
-                    // just ignore it
-                    if (isLocalIp(openedUrl)){
-                        return;
-                    }
-
-                    if (!errorMessages.isEmpty()){
+                    if (!errorMessages.isEmpty() && !isLocalIp(openedUrl)){
                         dialog.dismiss();
                     }
                 }
@@ -194,12 +188,7 @@ public class WebViewPopUp extends GodotPlugin {
                 @SuppressWarnings("deprecation")
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                    // just ignore it
-                    if (isLocalIp(failingUrl)){
-                        return;
-                    }
-
-                    if (description != null){
+                    if (description != null && !isLocalIp(failingUrl)){
                         errorMessages.add(description);
                     }
                 }
@@ -208,7 +197,7 @@ public class WebViewPopUp extends GodotPlugin {
                 @Override
                 public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError error) {
                     // Redirect to deprecated method, so you can use it in all SDK versions
-                    onReceivedError(view, error.getErrorCode(), error.getDescription().toString(), req.getUrl().toString());
+                    onReceivedError(view, error.getErrorCode(), error.getDescription().toString(), req.getUrl().getHost());
                 }
             });
 
@@ -248,15 +237,18 @@ public class WebViewPopUp extends GodotPlugin {
             alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialogInterface) {
+                    // dismiss dialog and return errors
                     if (!errorMessages.isEmpty()){
                         onDialogState.webViewError();
                         return;
                     }
 
+                    // dismiss dialog normal
                     if (finish){
                         return;
                     }
 
+                    // dismiss dialog on purpose by user
                     onDialogState.dialogDismiss();
                 }
             });
