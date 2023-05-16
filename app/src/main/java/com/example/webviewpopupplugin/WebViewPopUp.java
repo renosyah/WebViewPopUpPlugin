@@ -26,6 +26,8 @@ import org.godotengine.godot.Godot;
 import org.godotengine.godot.plugin.GodotPlugin;
 import org.godotengine.godot.plugin.SignalInfo;
 
+import java.net.InetAddress;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -126,14 +128,20 @@ public class WebViewPopUp extends GodotPlugin {
         Boolean finish = false;
 
         private boolean isLocalIp(String url){
-            boolean result = false;
             try {
                 Uri uri = Uri.parse(url);
                 String domain = uri.getHost();
-                result = domain.contains("127.0.0.1");
+                return domain.contains("127.0.0.1");
 
             } catch (Exception ignored){  }
-            return result;
+
+            try {
+                InetAddress domain = InetAddress.getByName(new URL(url).getHost());
+                return domain.isAnyLocalAddress();
+
+            } catch (Exception ignored){  }
+
+            return false;
 
         }
 
