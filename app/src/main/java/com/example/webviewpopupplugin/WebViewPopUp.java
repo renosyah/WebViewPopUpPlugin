@@ -29,6 +29,7 @@ import org.godotengine.godot.plugin.GodotPlugin;
 import org.godotengine.godot.plugin.SignalInfo;
 
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,9 +64,8 @@ public class WebViewPopUp extends GodotPlugin {
     @Override
     public Set<SignalInfo> getPluginSignals() {
         // cannot emit any signal with param from here
-        // error SETGEV bullcrab
-        // so instead we store error message
-        // that later be check on dialog dismiss
+        // error SETGEV bullcrab, so instead only simple
+        // signal, data will be fetch later via get method
         Set<SignalInfo> signals = new ArraySet<>();
         signals.add(new SignalInfo("on_dialog_dismiss"));
         signals.add(new SignalInfo("on_error"));
@@ -146,6 +146,8 @@ public class WebViewPopUp extends GodotPlugin {
             EditText keyboardHack = new EditText(activity);
 
             View errorView = activity.getLayoutInflater().inflate(R.layout.error_layout, null);
+            View loadingView = activity.getLayoutInflater().inflate(R.layout.loading_layout, null);
+
             Button back = errorView.findViewById(R.id.button_close);
             back.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -158,10 +160,13 @@ public class WebViewPopUp extends GodotPlugin {
             wrapper.addView(webView, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT);
             wrapper.addView(keyboardHack, LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             wrapper.addView(errorView);
+            wrapper.addView(loadingView);
+
             alertDialog.setView(wrapper);
 
             keyboardHack.setVisibility(View.GONE);
             errorView.setVisibility(View.GONE);
+            loadingView.setVisibility(View.GONE);
 
             webView.setFocusable(true);
             webView.setFocusableInTouchMode(true);
@@ -173,15 +178,34 @@ public class WebViewPopUp extends GodotPlugin {
                     return true;
                 }
 
+                @Override
+                public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                    super.onPageStarted(view, url, favicon);
+                    webView.setVisibility(View.GONE);
+                    loadingView.setVisibility(View.VISIBLE);
+                }
+
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    super.onPageFinished(view, url);
+
+                    if (!errorMessages.isEmpty()){
+                        webView.setVisibility(View.GONE);
+                        errorView.setVisibility(View.VISIBLE);
+                        loadingView.setVisibility(View.GONE);
+                        return;
+                    }
+
+                    webView.setVisibility(View.VISIBLE);
+                    loadingView.setVisibility(View.GONE);
+                }
+
                 @SuppressWarnings("deprecation")
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                     if (description != null){
                         errorMessages.add("error code : " + errorCode + ", error message : " + description);
                     }
-
-                    webView.setVisibility(View.GONE);
-                    errorView.setVisibility(View.VISIBLE);
                 }
 
                 @TargetApi(android.os.Build.VERSION_CODES.M)
