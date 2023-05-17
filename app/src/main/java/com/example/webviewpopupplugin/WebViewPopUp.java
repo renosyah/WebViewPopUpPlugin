@@ -243,7 +243,11 @@ public class WebViewPopUp extends GodotPlugin {
                 @Override
                 public boolean onKey(DialogInterface dialogInterface, int keyCode, KeyEvent event) {
                     if (keyCode == KeyEvent.KEYCODE_BACK) {
-                        dialogInterface.dismiss();
+                        if (webView.canGoBack()) {
+                            webView.goBack();
+                        } else {
+                            dialogInterface.dismiss();
+                        }
                     }
                     return true;
                 }
